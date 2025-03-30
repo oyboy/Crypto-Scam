@@ -26,7 +26,7 @@ public class KeyVerifier {
             byte[] computedVerifier = hmac.doFinal("KEY_VERIFIER".getBytes());
 
             return MessageDigest.isEqual(computedVerifier, storedVerifier);
-        } catch (NoSuchAlgorithmException | InvalidKeyException e) {
+        } catch (NoSuchAlgorithmException | InvalidKeyException | IllegalArgumentException e) {
             System.err.println("Error verifying key: " + e.getMessage());
         }
         return false;
