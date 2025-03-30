@@ -21,7 +21,7 @@ public class KeyGeneratorTest {
     @Test
     void testGenerateKeyFromPassword_lengthIs32Bytes() throws Exception {
         byte[] key = new KeyGenerator().generateKeyFromPassword(
-                "password123", 32
+                "password123", "salt".getBytes(),32
         );
         assertEquals(32, key.length, "Длина ключа должна быть 32 байта (256 бит)");
     }
@@ -29,7 +29,7 @@ public class KeyGeneratorTest {
     void testGenerateKeyFromPassword_fasterThanTimems() throws Exception {
         long startTime = System.currentTimeMillis();
         byte[] key = new KeyGenerator().generateKeyFromPassword(
-                "password123",32
+                "password123", "salt".getBytes(),32
         );
         long duration = System.currentTimeMillis() - startTime;
         assertTrue(duration < TIME, "Генерация ключа должна занимать <200 мс");
