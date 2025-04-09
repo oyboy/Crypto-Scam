@@ -46,12 +46,16 @@ public class FeistelNetwork {
         return unionArrays(left, right);
     }
     private byte[] encryptFunction(byte[] subblock, byte[] k){
-        byte[] blowfishResult = Blowfish.applyF(subblock, k);
-        byte[] kuznechikResult = Kuznechik.encrypt(subblock, k);
+        byte[] k1 = Arrays.copyOfRange(k, 0, k.length/2);
+        byte[] k2 = Arrays.copyOfRange(k, k.length/2, k.length);
 
-        return xor(blowfishResult, kuznechikResult);
+        byte[] blowfishResult = Blowfish.applyF(subblock, k1);
+        byte[] kuznechikResult = Kuznechik.encrypt(subblock, k2);
+
+        byte[] combined = xor(blowfishResult, kuznechikResult);
+        return PBlockTransformer.apply(combined);
     }
-    //returns 4-byte key
+    //returns 8-byte key
     private byte[] generateRoundKey(int round) {
         byte[] salt = {(byte)0x9E, (byte)0x37, (byte)0x79, (byte)0xC1};
         try {
@@ -63,7 +67,7 @@ public class FeistelNetwork {
             md.update((byte) (round >> 16));
 
             byte[] digest = md.digest();
-            return Arrays.copyOf(digest, 4);
+            return Arrays.copyOf(digest, 8);
         } catch (Exception e) {
             throw new RuntimeException("Key generation failed", e);
         }

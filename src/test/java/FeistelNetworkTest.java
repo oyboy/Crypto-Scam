@@ -1,8 +1,10 @@
 import org.example.FeistelNetwork;
+import org.example.PBlockTransformer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
 
 import javax.crypto.IllegalBlockSizeException;
+import java.security.SecureRandom;
 import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -130,5 +132,17 @@ public class FeistelNetworkTest {
 
         assertArrayEquals(onesBlock, decrypted,
                 "All ones block should decrypt correctly");
+    }
+    @Test
+    void testPBlockIntegration() {
+        byte[] testData = {0x00, 0x11, 0x22, 0x33};
+        byte[] key = new byte[8];
+        new SecureRandom().nextBytes(key);
+
+        byte[] transformed = PBlockTransformer.apply(testData);
+
+        assertFalse(Arrays.equals(testData, transformed));
+        assertNotEquals(0x00, transformed[0] & 0xFF);
+        assertNotEquals(0x11, transformed[1] & 0xFF);
     }
 }
