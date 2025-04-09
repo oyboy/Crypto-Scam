@@ -1,6 +1,7 @@
 package org.example;
 
 import javax.crypto.IllegalBlockSizeException;
+import java.security.MessageDigest;
 import java.util.Arrays;
 
 public class FeistelNetwork {
@@ -28,6 +29,7 @@ public class FeistelNetwork {
         }
         return unionArrays(left, right);
     }
+
     public byte[] decryptBlock(byte[] block) throws IllegalBlockSizeException {
         if (block.length != 8) throw new IllegalBlockSizeException("Block length must be 8 bytes");
 
@@ -43,18 +45,28 @@ public class FeistelNetwork {
 
         return unionArrays(left, right);
     }
-    // subblock = k = 32 bits
     private byte[] encryptFunction(byte[] subblock, byte[] k){
-        byte[] result = new byte[subblock.length];
-        result = Blowfish.applyF(result, k);
-        return result;
+        byte[] blowfishResult = Blowfish.applyF(subblock, k);
+        byte[] kuznechikResult = Kuznechik.encrypt(subblock, k);
+
+        return xor(blowfishResult, kuznechikResult);
     }
+    //returns 4-byte key
     private byte[] generateRoundKey(int round) {
-        byte[] roundKey = new byte[4];
-        for (int i = 0; i < roundKey.length; i++) {
-            roundKey[i] = (byte)(KEY[(round + i) % KEY.length] ^ (round * 0x55));
+        byte[] salt = {(byte)0x9E, (byte)0x37, (byte)0x79, (byte)0xC1};
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            md.update(KEY);
+            md.update(salt);
+            md.update((byte) round);
+            md.update((byte) (round >> 8));
+            md.update((byte) (round >> 16));
+
+            byte[] digest = md.digest();
+            return Arrays.copyOf(digest, 4);
+        } catch (Exception e) {
+            throw new RuntimeException("Key generation failed", e);
         }
-        return roundKey;
     }
 
     private byte[] xor(byte[] a, byte[] b) {

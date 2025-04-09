@@ -1,8 +1,5 @@
 package org.example;
 
-import javax.crypto.IllegalBlockSizeException;
-import java.security.GeneralSecurityException;
-
 public class Blowfish {
     private static final int[][] S_BOXES = {
             {
