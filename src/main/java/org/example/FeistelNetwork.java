@@ -12,6 +12,7 @@ public class FeistelNetwork {
             throw new IllegalArgumentException("Key must be at least " + ROUNDS + " bytes long");
         }
         this.KEY = key.clone();
+        Blowfish.init(KEY);
     }
 
     public byte[] encryptBlock(byte[] block) throws IllegalBlockSizeException {
@@ -42,13 +43,10 @@ public class FeistelNetwork {
 
         return unionArrays(left, right);
     }
-
+    // subblock = k = 32 bits
     private byte[] encryptFunction(byte[] subblock, byte[] k){
-        // Упрощённая функция
         byte[] result = new byte[subblock.length];
-        for (int i = 0; i < result.length; i++) {
-            result[i] = (byte)(subblock[i] ^ k[i % k.length]);
-        }
+        result = Blowfish.applyF(result, k);
         return result;
     }
     private byte[] generateRoundKey(int round) {
@@ -58,6 +56,7 @@ public class FeistelNetwork {
         }
         return roundKey;
     }
+
     private byte[] xor(byte[] a, byte[] b) {
         if (a.length != b.length) return null;
         byte[] c = new byte[a.length];
