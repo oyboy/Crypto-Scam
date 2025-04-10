@@ -1,21 +1,26 @@
 package org.example;
 
+import javax.crypto.IllegalBlockSizeException;
+import java.io.File;
+import java.io.IOException;
+
 public class Main {
     public static void main(String[] args) {
-        String text = "Hello World!";
         Cryptor cryptor = new Cryptor();
         KeyGenerator generator = new KeyGenerator();
         byte[] salt = generator.generateSalt(128/8);
         byte[] key = generator.generateKeyFromPassword("MyPassword", salt, 256/8);
 
-        String crypted = cryptor.encrypt(text, key);
-        System.out.println("crypted: " + crypted);
+        try {
+            File original = new File("test-files/document.txt");
+            File encrypted = new File("test-files/enc_document.txt");
+            cryptor.encryptFile(original, encrypted, key);
 
-        String decrypted = cryptor.decrypt(crypted, key);
-        System.out.println("decrypted: " + decrypted);
+            File decrypted = new File("test-files/dec_document.txt");
+            cryptor.decryptFile(encrypted, decrypted, key);
 
-        key[1] = 0x00;
-        String anotherDecrypted = cryptor.decrypt(crypted, key);
-        System.out.println("decrypted with changed key: " + anotherDecrypted);
+        } catch (IllegalBlockSizeException | IOException l) {
+            System.err.println("Error: " + l.getMessage());
+        }
     }
 }

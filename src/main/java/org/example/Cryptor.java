@@ -1,13 +1,19 @@
 package org.example;
 
 import javax.crypto.IllegalBlockSizeException;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
 
 import static org.example.DataOperator.*;
 
 public class Cryptor {
     private final int BLOCK_SIZE = 8;
+    private long lastUpdateTime = 0;
+    private final long UPDATE_INTERVAL_MS = 200;
     private final BBSRandom bbsRandom = new BBSRandom();
     private final String IV_DELIMITER = "::";
 
@@ -94,5 +100,94 @@ public class Cryptor {
             System.err.println("Raw: " + Arrays.toString(decrypted));
             return new String(decrypted, StandardCharsets.UTF_8);
         }
+    }
+
+    public void encryptFile(File inputFile, File outputFile, byte[] key) throws IOException,
+            IllegalBlockSizeException {
+        long fileSize = inputFile.length();
+        long processedBytes = 0;
+        try (InputStream in = new BufferedInputStream(new FileInputStream(inputFile));
+             OutputStream out = new BufferedOutputStream(new FileOutputStream(outputFile))) {
+            FeistelNetwork feistelNetwork = new FeistelNetwork(key);
+            byte[] iv = createInitVector();
+            out.write(iv);
+            byte[] previousBlock = iv.clone();
+            byte[] buffer = new byte[BLOCK_SIZE];
+            int bytesRead;
+
+            System.out.println("Encrypting file...");
+            while ((bytesRead = in.read(buffer)) != -1) {
+                if (bytesRead < BLOCK_SIZE) {
+                    buffer = addPadding(Arrays.copyOf(buffer, bytesRead));
+                }
+                byte[] xored = xor(buffer, previousBlock);
+                byte[] encryptedBlock = feistelNetwork.encryptBlock(xored);
+                out.write(encryptedBlock);
+                previousBlock = encryptedBlock;
+
+                processedBytes += bytesRead;
+                printProgressBar(processedBytes, fileSize);
+            }
+            System.out.println("\nEncryption completed!");
+        }
+    }
+
+    public void decryptFile(File inputFile, File outputFile, byte[] key) throws IOException,
+            IllegalBlockSizeException {
+        long fileSize = inputFile.length();
+        long processedBytes = BLOCK_SIZE;
+
+        Path tempFile = Files.createTempFile("decrypt", ".tmp");
+        try (InputStream in = new BufferedInputStream(new FileInputStream(inputFile));
+             OutputStream out = new BufferedOutputStream(new FileOutputStream(tempFile.toFile()))) {
+            FeistelNetwork feistelNetwork = new FeistelNetwork(key);
+
+            byte[] iv = new byte[BLOCK_SIZE];
+            if (in.read(iv) != BLOCK_SIZE) {
+                throw new IOException("Invalid file format - missing IV");
+            }
+            byte[] previousBlock = iv.clone();
+            byte[] buffer = new byte[BLOCK_SIZE];
+            int bytesRead;
+
+            System.out.println("Decrypting file...");
+            while ((bytesRead = in.read(buffer)) != -1) {
+                if (bytesRead != BLOCK_SIZE) {
+                    throw new IOException("Invalid block size in encrypted file");
+                }
+                byte[] decryptedBlock = feistelNetwork.decryptBlock(buffer);
+                byte[] xored = xor(decryptedBlock, previousBlock);
+                out.write(xored);
+                previousBlock = buffer.clone();
+
+                processedBytes += bytesRead;
+                printProgressBar(processedBytes, fileSize);
+            }
+            System.out.println("\nDecryption completed!");
+        }
+
+        try (InputStream tempIn = new BufferedInputStream(new FileInputStream(tempFile.toFile()));
+             OutputStream out = new BufferedOutputStream(new FileOutputStream(outputFile))) {
+            byte[] allBytes = tempIn.readAllBytes();
+            byte[] unpadded;
+            try {
+                unpadded = removePadding(allBytes);
+            } catch (IllegalArgumentException e) {
+                System.err.println("Padding error, writing raw data: " + e.getMessage());
+                unpadded = allBytes;
+            }
+            out.write(unpadded);
+        }
+        Files.deleteIfExists(tempFile);
+    }
+
+    private void printProgressBar(long processed, long total) {
+        long currentTime = System.nanoTime();
+        if (currentTime - lastUpdateTime < UPDATE_INTERVAL_MS * 1_000_000) return;
+
+        lastUpdateTime = currentTime;
+
+        int percent = (int) (100 * processed / total);
+        System.out.printf("\r[%3d%%] %d/%d bytes", percent, processed, total);
     }
 }
