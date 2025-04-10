@@ -1,19 +1,27 @@
 package org.example;
 
+import org.example.modules.Blowfish;
+import org.example.modules.Kuznechik;
+import org.example.modules.PBlockTransformer;
+
 import javax.crypto.IllegalBlockSizeException;
 import java.security.MessageDigest;
 import java.util.Arrays;
 
+import static org.example.DataOperator.unionArrays;
+import static org.example.DataOperator.xor;
+
 public class FeistelNetwork {
     private final byte[] KEY;
     private final int ROUNDS = 12;
+    private final Blowfish blowfish;
 
     public FeistelNetwork(byte[] key) {
         if (key == null || key.length < ROUNDS) {
             throw new IllegalArgumentException("Key must be at least " + ROUNDS + " bytes long");
         }
         this.KEY = key.clone();
-        Blowfish.init(KEY);
+        this.blowfish = new Blowfish(key);
     }
 
     public byte[] encryptBlock(byte[] block) throws IllegalBlockSizeException {
@@ -49,7 +57,7 @@ public class FeistelNetwork {
         byte[] k1 = Arrays.copyOfRange(k, 0, k.length/2);
         byte[] k2 = Arrays.copyOfRange(k, k.length/2, k.length);
 
-        byte[] blowfishResult = Blowfish.applyF(subblock, k1);
+        byte[] blowfishResult = blowfish.applyF(subblock, k1);
         byte[] kuznechikResult = Kuznechik.encrypt(subblock, k2);
 
         byte[] combined = xor(blowfishResult, kuznechikResult);
@@ -71,20 +79,5 @@ public class FeistelNetwork {
         } catch (Exception e) {
             throw new RuntimeException("Key generation failed", e);
         }
-    }
-
-    private byte[] xor(byte[] a, byte[] b) {
-        if (a.length != b.length) return null;
-        byte[] c = new byte[a.length];
-        for (int i = 0; i < c.length; i++) {
-            c[i] = (byte) (a[i] ^ b[i]);
-        }
-        return c;
-    }
-    private byte[] unionArrays(byte[] a, byte[] b) {
-        byte[] combined = new byte[a.length + b.length];
-        System.arraycopy(a,0, combined,0, a.length);
-        System.arraycopy(b,0, combined, a.length, b.length);
-        return combined;
     }
 }

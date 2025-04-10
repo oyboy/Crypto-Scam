@@ -1,5 +1,5 @@
 import org.example.FeistelNetwork;
-import org.example.PBlockTransformer;
+import org.example.modules.PBlockTransformer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
 
@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.*;
 public class FeistelNetworkTest {
 
     private FeistelNetwork feistel;
-    private final byte[] testKey = "ThisIsASecretKey1234".getBytes();
+    private final byte[] testKey = "ThisIsASecretKey123412345678901234568".getBytes();
     private final byte[] testBlock = "TestBlock".getBytes();
 
     @BeforeEach
@@ -50,6 +50,13 @@ public class FeistelNetworkTest {
 
         assertArrayEquals(encrypted1, encrypted2,
                 "Same block with same key should produce same encrypted output");
+    }
+    @Test
+    void testEncryptAndDecryptSameBlock() throws Exception {
+        byte[] block = "BlockOne".getBytes();
+        byte[] encrypted = feistel.encryptBlock(block);
+        byte[] decrypted = feistel.decryptBlock(encrypted);
+        assertArrayEquals(block, decrypted, "Decrypted block should match original");
     }
 
     @Test

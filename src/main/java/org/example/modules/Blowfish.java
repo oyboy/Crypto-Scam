@@ -1,7 +1,7 @@
-package org.example;
+package org.example.modules;
 
 public class Blowfish {
-    private static final int[][] S_BOXES = {
+    private final int[][] S_BOXES = {
             {
                     0xd1310ba6, 0x98dfb5ac, 0x2ffd72db, 0xd01adfb7, 0xb8e1afed, 0x6a267e96,
                     0xba7c9045, 0xf12c7f99, 0x24a19947, 0xb3916cf7, 0x0801f2e2, 0x858efc16,
@@ -184,9 +184,12 @@ public class Blowfish {
                     0xb74e6132, 0xce77e25b, 0x578fdfe3, 0x3ac372e6
             }
     };
-
-    public static void init(byte[] key) throws IllegalArgumentException{
+    public Blowfish(byte[] key) {
+        init(key);
+    }
+    private void init(byte[] key) throws IllegalArgumentException{
         if (key.length < 4) throw new IllegalArgumentException("key must be at least 4 bytes");
+        System.out.println("S_BOXES[0][0] = " + S_BOXES[0][0]);
         int keyPos = 0;
         for (int i = 0; i < 4; i++) {
             for (int j = 0; j < 256; j++) {
@@ -200,7 +203,7 @@ public class Blowfish {
             }
         }
     }
-    public static byte[] applyF(byte[] block, byte[] roundKey) {
+    public byte[] applyF(byte[] block, byte[] roundKey) {
         if (block.length != 4) {
             throw new IllegalArgumentException("Block must be 4 bytes");
         }
@@ -218,7 +221,7 @@ public class Blowfish {
 
         return intToBytes(result);
     }
-    public static byte[] intToBytes(int value) {
+    public byte[] intToBytes(int value) {
         return new byte[]{
                 (byte) (value >>> 24),
                 (byte) (value >>> 16),

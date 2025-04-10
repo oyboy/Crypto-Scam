@@ -1,7 +1,9 @@
-package org.example;
+package org.example.modules;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+
+import static org.example.DataOperator.xor;
 
 public class Kuznechik {
     private static final byte[] SBOX = {
@@ -57,13 +59,5 @@ public class Kuznechik {
                 (byte) (transformed >>> 8),
                 (byte) transformed
         };
-    }
-
-    private static byte[] xor(byte[] a, byte[] b) {
-        byte[] result = new byte[a.length];
-        for (int i = 0; i < a.length; i++) {
-            result[i] = (byte) (a[i] ^ b[i]);
-        }
-        return result;
     }
 }

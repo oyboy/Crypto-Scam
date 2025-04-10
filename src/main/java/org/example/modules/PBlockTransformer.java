@@ -1,4 +1,4 @@
-package org.example;
+package org.example.modules;
 
 public class PBlockTransformer {
     private static final int[] MIX_COLUMNS_MATRIX = {

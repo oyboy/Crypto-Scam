@@ -10,13 +10,13 @@ public class KeyGenerator {
         BBSRandom secureRandom = new BBSRandom();
         return secureRandom.nextBytes(keySizeBytes);
     }
-    public byte[] generateKeyFromPassword(String password, byte[] salt, int keyLengthBytes) {
+    public byte[] generateKeyFromPassword(String password, byte[] salt, int keySizeBytes) {
         try{
             PBEKeySpec spec = new PBEKeySpec(
                     password.toCharArray(),
                     salt,
                     100_000,
-                    keyLengthBytes * 8
+                    keySizeBytes * 8
             );
             SecretKeyFactory skf = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
             return skf.generateSecret(spec).getEncoded();
