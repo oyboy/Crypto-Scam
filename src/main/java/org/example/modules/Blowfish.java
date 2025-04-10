@@ -189,7 +189,6 @@ public class Blowfish {
     }
     private void init(byte[] key) throws IllegalArgumentException{
         if (key.length < 4) throw new IllegalArgumentException("key must be at least 4 bytes");
-        System.out.println("S_BOXES[0][0] = " + S_BOXES[0][0]);
         int keyPos = 0;
         for (int i = 0; i < 4; i++) {
             for (int j = 0; j < 256; j++) {
