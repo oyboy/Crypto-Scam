@@ -31,7 +31,6 @@ public class Cryptor {
     }
 
     public String encrypt(String text, byte[] key) {
-        System.out.println("=== ENCRYPTION STARTED ===");
         if (text == null || text.isEmpty()) {
             System.err.println("Text is empty");
             return null;
@@ -55,14 +54,10 @@ public class Cryptor {
                 System.err.println("Illegal block size: " + e.getMessage());
             }
         }
-
-        System.out.println("\nFinal encrypted data: " + bytesToHex(encrypted));
-        System.out.println("=== ENCRYPTION COMPLETED ===");
         return bytesToHex(iv) + IV_DELIMITER + bytesToHex(encrypted);
     }
 
     public String decrypt(String encryptedText, byte[] key) {
-        System.out.println("\n=== DECRYPTION STARTED ===");
         if (encryptedText == null || encryptedText.isEmpty()) {
             System.err.println("Encrypted text is empty");
             return null;
@@ -92,9 +87,6 @@ public class Cryptor {
 
         try {
             byte[] unpadded = removePadding(decrypted);
-            System.out.println("After padding removal: " + Arrays.toString(unpadded));
-            System.out.println("Hex view: " + bytesToHex(unpadded));
-            System.out.println("=== DECRYPTION COMPLETED ===");
             return new String(unpadded, StandardCharsets.UTF_8);
         } catch (IllegalArgumentException e) {
             System.err.println("Padding error! Full decrypted data dump:");
