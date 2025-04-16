@@ -1,26 +1,34 @@
 package org.example;
 
-import javax.crypto.IllegalBlockSizeException;
-import java.io.File;
-import java.io.IOException;
+import org.example.commands.DecryptFileCommand;
+import org.example.commands.EncryptFileCommand;
+import picocli.CommandLine;
+import java.util.Scanner;
 
-public class Main {
+@CommandLine.Command(name = "crypto-scum", description = "Crypt files and directories", subcommands = {
+        EncryptFileCommand.class,
+        DecryptFileCommand.class
+})
+public class Main implements Runnable {
+    @Override
+    public void run() {
+        new CommandLine(this).usage(System.out);
+    }
+
     public static void main(String[] args) {
-        Cryptor cryptor = new Cryptor();
-        KeyGenerator generator = new KeyGenerator();
-        byte[] salt = generator.generateSalt(128/8);
-        byte[] key = generator.generateKeyFromPassword("MyPassword", salt, 256/8);
+        Scanner scanner = new Scanner(System.in);
+        while (true) {
+            System.out.print("> ");
+            String input = scanner.nextLine().trim();
 
-        try {
-            File original = new File("test-files/document.txt");
-            File encrypted = new File("test-files/enc_document.txt");
-            cryptor.encryptFile(original, encrypted, key);
+            if (input.equalsIgnoreCase("exit")) {
+                System.out.println("Выход из программы.");
+                break;
+            }
 
-            File decrypted = new File("test-files/dec_document.txt");
-            cryptor.decryptFile(encrypted, decrypted, key);
-
-        } catch (IllegalBlockSizeException | IOException l) {
-            System.err.println("Error: " + l.getMessage());
+            String[] commandArgs = input.split(" ");
+            new CommandLine(new Main()).execute(commandArgs);
         }
+        scanner.close();
     }
 }

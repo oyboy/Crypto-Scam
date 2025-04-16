@@ -4,27 +4,27 @@ import javax.crypto.IllegalBlockSizeException;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
-
 import static org.example.DataOperator.*;
 
 public class Cryptor {
-    private final int BLOCK_SIZE = 8;
-    private long lastUpdateTime = 0;
-    private final long UPDATE_INTERVAL_MS = 200;
+    private static final int BLOCK_SIZE = 8;
+    private static final String IV_DELIMITER = "::";
+    private static final int VERIFIER_SIZE = 32;
+    private static final int SALT_SIZE = 16;
+
     private final BBSRandom bbsRandom = new BBSRandom();
-    private final String IV_DELIMITER = "::";
+    private long lastUpdateTime = 0;
 
     private byte[] addPadding(byte[] input) {
-        if (input.length % BLOCK_SIZE == 0) return input;
         int paddingLength = BLOCK_SIZE - (input.length % BLOCK_SIZE);
         byte[] padded = Arrays.copyOf(input, input.length + paddingLength);
         Arrays.fill(padded, input.length, padded.length, (byte) paddingLength);
         return padded;
     }
-    private byte[] removePadding(byte[] input) throws IllegalArgumentException {
+
+    private byte[] removePadding(byte[] input) {
+        if (input.length == 0) throw new IllegalArgumentException("Unexpected end of block");
         int paddingLength = input[input.length - 1] & 0xFF;
         if (paddingLength <= 0 || paddingLength > BLOCK_SIZE) {
             throw new IllegalArgumentException("Invalid padding");
@@ -41,51 +41,52 @@ public class Cryptor {
             System.err.println("Text is empty");
             return null;
         }
-        FeistelNetwork feistelNetwork = new FeistelNetwork(key);
+
+        FeistelNetwork feistel = new FeistelNetwork(key);
         byte[] input = text.getBytes(StandardCharsets.UTF_8);
         byte[] paddedInput = addPadding(input);
         byte[] iv = createInitVector();
 
         byte[] encrypted = new byte[paddedInput.length];
-        byte[] previousBlock = iv.clone();
+        byte[] prev = iv.clone();
 
         for (int i = 0; i < paddedInput.length; i += BLOCK_SIZE) {
             byte[] block = Arrays.copyOfRange(paddedInput, i, i + BLOCK_SIZE);
-            byte[] xored = xor(block, previousBlock);
+            byte[] xored = xor(block, prev);
             try {
-                byte[] encryptedBlock = feistelNetwork.encryptBlock(xored);
+                byte[] encryptedBlock = feistel.encryptBlock(xored);
                 System.arraycopy(encryptedBlock, 0, encrypted, i, BLOCK_SIZE);
-                previousBlock = encryptedBlock;
+                prev = encryptedBlock;
             } catch (IllegalBlockSizeException e) {
                 System.err.println("Illegal block size: " + e.getMessage());
             }
         }
+
         return bytesToHex(iv) + IV_DELIMITER + bytesToHex(encrypted);
     }
-
     public String decrypt(String encryptedText, byte[] key) {
         if (encryptedText == null || encryptedText.isEmpty()) {
             System.err.println("Encrypted text is empty");
             return null;
         }
-        FeistelNetwork feistelNetwork = new FeistelNetwork(key);
+
         String[] parts = encryptedText.split(IV_DELIMITER, 2);
-        if (parts.length != 2) {
-            throw new IllegalArgumentException("Invalid encrypted format");
-        }
+        if (parts.length != 2) throw new IllegalArgumentException("Invalid encrypted format");
+
+        FeistelNetwork feistel = new FeistelNetwork(key);
         byte[] iv = hexToBytes(parts[0]);
         byte[] encrypted = hexToBytes(parts[1]);
 
         byte[] decrypted = new byte[encrypted.length];
-        byte[] previousBlock = iv.clone();
+        byte[] prev = iv.clone();
 
         for (int i = 0; i < encrypted.length; i += BLOCK_SIZE) {
             byte[] block = Arrays.copyOfRange(encrypted, i, i + BLOCK_SIZE);
             try {
-                byte[] decryptedBlock = feistelNetwork.decryptBlock(block);
-                byte[] xored = xor(decryptedBlock, previousBlock);
+                byte[] decryptedBlock = feistel.decryptBlock(block);
+                byte[] xored = xor(decryptedBlock, prev);
                 System.arraycopy(xored, 0, decrypted, i, BLOCK_SIZE);
-                previousBlock = block;
+                prev = block;
             } catch (IllegalBlockSizeException e) {
                 System.err.println("Illegal block size: " + e.getMessage());
             }
@@ -95,98 +96,113 @@ public class Cryptor {
             byte[] unpadded = removePadding(decrypted);
             return new String(unpadded, StandardCharsets.UTF_8);
         } catch (IllegalArgumentException e) {
-            System.err.println("Padding error! Full decrypted data dump:");
+            System.err.println("Padding error! Dump:");
             System.err.println("Hex: " + bytesToHex(decrypted));
-            System.err.println("Raw: " + Arrays.toString(decrypted));
             return new String(decrypted, StandardCharsets.UTF_8);
         }
     }
 
-    public void encryptFile(File inputFile, File outputFile, byte[] key) throws IOException,
-            IllegalBlockSizeException {
-        long fileSize = inputFile.length();
-        long processedBytes = 0;
-        try (InputStream in = new BufferedInputStream(new FileInputStream(inputFile));
-             OutputStream out = new BufferedOutputStream(new FileOutputStream(outputFile))) {
-            FeistelNetwork feistelNetwork = new FeistelNetwork(key);
+    public void encryptFile(File inputFile, File outputFile, byte[] key, byte[] salt) throws IOException, IllegalBlockSizeException {
+        KeyVerifier keyVerifier = new KeyVerifier();
+        byte[] verifier = keyVerifier.createKeyVerifier(key);
+        if (verifier == null) throw new IOException("Failed to create key verifier");
+
+        byte[] data = Files.readAllBytes(inputFile.toPath());
+        try (OutputStream out = new BufferedOutputStream(new FileOutputStream(outputFile))) {
+            FeistelNetwork feistel = new FeistelNetwork(key);
             byte[] iv = createInitVector();
             out.write(iv);
-            byte[] previousBlock = iv.clone();
-            byte[] buffer = new byte[BLOCK_SIZE];
-            int bytesRead;
+            byte[] prev = iv.clone();
 
             System.out.println("Encrypting file...");
-            while ((bytesRead = in.read(buffer)) != -1) {
-                if (bytesRead < BLOCK_SIZE) {
-                    buffer = addPadding(Arrays.copyOf(buffer, bytesRead));
-                }
-                byte[] xored = xor(buffer, previousBlock);
-                byte[] encryptedBlock = feistelNetwork.encryptBlock(xored);
-                out.write(encryptedBlock);
-                previousBlock = encryptedBlock;
+            for (int i = 0; i < data.length; i += BLOCK_SIZE) {
+                int end = Math.min(i + BLOCK_SIZE, data.length);
+                byte[] block = Arrays.copyOfRange(data, i, end);
 
-                processedBytes += bytesRead;
-                printProgressBar(processedBytes, fileSize);
+                if (block.length < BLOCK_SIZE) block = addPadding(block);
+
+                byte[] xored = xor(block, prev);
+                byte[] encryptedBlock = feistel.encryptBlock(xored);
+                out.write(encryptedBlock);
+                prev = encryptedBlock;
+
+                printProgressBar(i + BLOCK_SIZE, data.length + data.length % 8);
             }
+
+            out.write(verifier);
+            out.write(salt);
             System.out.println("\nEncryption completed!");
         }
     }
 
-    public void decryptFile(File inputFile, File outputFile, byte[] key) throws IOException,
-            IllegalBlockSizeException {
+    public void decryptFile(File inputFile, File outputFile, byte[] key) throws IOException, IllegalBlockSizeException {
         long fileSize = inputFile.length();
-        long processedBytes = BLOCK_SIZE;
+        if (fileSize < BLOCK_SIZE + VERIFIER_SIZE + SALT_SIZE) throw new IOException("Invalid file format");
 
-        Path tempFile = Files.createTempFile("decrypt", ".tmp");
-        try (InputStream in = new BufferedInputStream(new FileInputStream(inputFile));
-             OutputStream out = new BufferedOutputStream(new FileOutputStream(tempFile.toFile()))) {
-            FeistelNetwork feistelNetwork = new FeistelNetwork(key);
+        byte[] verifier = new byte[VERIFIER_SIZE];
+        try (RandomAccessFile raf = new RandomAccessFile(inputFile, "r")) {
+            raf.seek(fileSize - VERIFIER_SIZE - SALT_SIZE);
+            raf.readFully(verifier);
+        }
+        KeyVerifier keyVerifier = new KeyVerifier();
+        if (!keyVerifier.verifyKey(key, verifier)) throw new IllegalArgumentException("Invalid key");
 
-            byte[] iv = new byte[BLOCK_SIZE];
-            if (in.read(iv) != BLOCK_SIZE) {
-                throw new IOException("Invalid file format - missing IV");
+        long encryptedLen = fileSize - BLOCK_SIZE - VERIFIER_SIZE - SALT_SIZE;
+
+        byte[] decryptedData;
+        try (InputStream in = new BufferedInputStream(new FileInputStream(inputFile))) {
+            FeistelNetwork feistel = new FeistelNetwork(key);
+
+            byte[] iv = in.readNBytes(BLOCK_SIZE);
+            byte[] prev = iv.clone();
+
+            ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+            long processed = 0;
+            System.out.println("Decrypting...");
+
+            while (processed < encryptedLen) {
+                byte[] block = in.readNBytes(BLOCK_SIZE);
+                if (block.length != BLOCK_SIZE) throw new IOException("Invalid encrypted block");
+
+                byte[] decryptedBlock = feistel.decryptBlock(block);
+                byte[] xored = xor(decryptedBlock, prev);
+                buffer.write(xored);
+                prev = block;
+                processed += BLOCK_SIZE;
+
+                printProgressBar(processed, encryptedLen);
             }
-            byte[] previousBlock = iv.clone();
-            byte[] buffer = new byte[BLOCK_SIZE];
-            int bytesRead;
 
-            System.out.println("Decrypting file...");
-            while ((bytesRead = in.read(buffer)) != -1) {
-                if (bytesRead != BLOCK_SIZE) {
-                    throw new IOException("Invalid block size in encrypted file");
-                }
-                byte[] decryptedBlock = feistelNetwork.decryptBlock(buffer);
-                byte[] xored = xor(decryptedBlock, previousBlock);
-                out.write(xored);
-                previousBlock = buffer.clone();
-
-                processedBytes += bytesRead;
-                printProgressBar(processedBytes, fileSize);
-            }
-            System.out.println("\nDecryption completed!");
+            decryptedData = buffer.toByteArray();
+            System.out.println("\nDecryption finished.");
         }
 
-        try (InputStream tempIn = new BufferedInputStream(new FileInputStream(tempFile.toFile()));
-             OutputStream out = new BufferedOutputStream(new FileOutputStream(outputFile))) {
-            byte[] allBytes = tempIn.readAllBytes();
-            byte[] unpadded;
+        try (OutputStream out = new BufferedOutputStream(new FileOutputStream(outputFile))) {
             try {
-                unpadded = removePadding(allBytes);
+                out.write(removePadding(decryptedData));
             } catch (IllegalArgumentException e) {
-                System.err.println("Padding error, writing raw data: " + e.getMessage());
-                unpadded = allBytes;
+                System.err.println("Padding error, writing raw: " + e.getMessage());
+                out.write(decryptedData);
             }
-            out.write(unpadded);
         }
-        Files.deleteIfExists(tempFile);
+    }
+
+    public byte[] readSalt(File file) {
+        byte[] salt = new byte[SALT_SIZE];
+        try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
+            raf.seek(raf.length() - SALT_SIZE);
+            raf.readFully(salt);
+        } catch (IOException e) {
+            System.err.println("Failed to read salt: " + e.getMessage());
+        }
+        return salt;
     }
 
     private void printProgressBar(long processed, long total) {
-        long currentTime = System.nanoTime();
-        if (currentTime - lastUpdateTime < UPDATE_INTERVAL_MS * 1_000_000) return;
-
-        lastUpdateTime = currentTime;
-
+        long now = System.nanoTime();
+        long update_interval = 200L;
+        if (now - lastUpdateTime < update_interval * 1_000_000) return;
+        lastUpdateTime = now;
         int percent = (int) (100 * processed / total);
         System.out.printf("\r[%3d%%] %d/%d bytes", percent, processed, total);
     }
