@@ -36,16 +36,6 @@
             <artifactId>tika-parsers-standard-package</artifactId>
             <version>3.0.0</version>
         </dependency>
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-api</artifactId>
-            <version>2.20.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-core</artifactId>
-            <version>2.20.0</version>
-        </dependency>
     </dependencies>
 
     <build>
@@ -53,25 +43,9 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>run-benchmarks</id>
-                        <phase>integration-test</phase>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                        <configuration>
-                            <classpathScope>test</classpathScope>
-                            <executable>java</executable>
-                            <arguments>
-                                <argument>-classpath</argument>
-                                <classpath />
-                                <argument>org.openjdk.jmh.Main</argument>
-                                <argument>.*</argument>
-                            </arguments>
-                        </configuration>
-                    </execution>
-                </executions>
+                <configuration>
+                    <mainClass>com.example.Main</mainClass>
+                </configuration>
             </plugin>
         </plugins>
     </build>
