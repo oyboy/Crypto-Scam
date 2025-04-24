@@ -1,13 +1,17 @@
 package org.example;
 
+import org.example.commands.DecryptDirCommand;
 import org.example.commands.DecryptFileCommand;
+import org.example.commands.EncryptDirCommand;
 import org.example.commands.EncryptFileCommand;
 import picocli.CommandLine;
 import java.util.Scanner;
 
 @CommandLine.Command(name = "crypto-scum", description = "Crypt files and directories", subcommands = {
         EncryptFileCommand.class,
-        DecryptFileCommand.class
+        DecryptFileCommand.class,
+        EncryptDirCommand.class,
+        DecryptDirCommand.class
 })
 public class Main implements Runnable {
     @Override
