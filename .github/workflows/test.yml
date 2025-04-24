@@ -9,6 +9,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-java@v3
@@ -16,5 +17,12 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
           cache: maven
-      - name: Build and run Ts with maven
-        run: mvn -ntp -B verify
+
+      - name: Package project as JAR
+        run: mvn -ntp -B package
+
+      - name: Upload JAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: crypto-scum
+          path: target/*.jar
