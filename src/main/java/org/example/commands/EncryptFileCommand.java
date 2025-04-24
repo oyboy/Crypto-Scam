@@ -4,10 +4,7 @@ import org.example.Cryptor;
 import org.example.key.KeyGenerator;
 import org.example.MetaCryptor;
 import picocli.CommandLine;
-
-import javax.crypto.IllegalBlockSizeException;
 import java.io.File;
-import java.io.IOException;
 
 @CommandLine.Command(name="encrypt-file", description = "Encrypt file command")
 public class EncryptFileCommand implements Runnable {
@@ -31,10 +28,11 @@ public class EncryptFileCommand implements Runnable {
         try {
             File original = new File(filename);
             File encrypted = output_filename == null ? original : new File(output_filename);
+
             cryptor.encryptFile(original, encrypted, key, salt);
-            metaCryptor.cryptMetadata(original);
-        } catch (IllegalBlockSizeException | IOException l) {
-            System.err.println("Error: " + l.getMessage());
+            //metaCryptor.cryptMetadata(original, key);
+        } catch (Exception e) {
+            System.err.println("Error: " + e.getMessage());
         }
     }
 }
