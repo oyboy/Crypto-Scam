@@ -40,14 +40,13 @@ public class Cryptor {
         return bbsRandom.nextBytes(BLOCK_SIZE);
     }
 
-    public String encrypt(String text, byte[] key) {
-        if (text == null || text.isEmpty()) {
-            System.err.println("Text is empty");
-            return null;
+    public byte[] encrypt(byte[] input, byte[] key) {
+        if (input == null || input.length == 0) {
+            System.err.println("Input is empty");
+            return new byte[0];
         }
 
         FeistelNetwork feistel = new FeistelNetwork(key);
-        byte[] input = text.getBytes(StandardCharsets.UTF_8);
         byte[] paddedInput = addPadding(input);
         byte[] iv = createInitVector();
 
@@ -66,21 +65,23 @@ public class Cryptor {
             }
         }
 
-        return bytesToHex(iv) + IV_DELIMITER + bytesToHex(encrypted);
+        byte[] result = new byte[iv.length + encrypted.length];
+        System.arraycopy(iv, 0, result, 0, iv.length);
+        System.arraycopy(encrypted, 0, result, iv.length, encrypted.length);
+
+        return result;
     }
-    public String decrypt(String encryptedText, byte[] key) {
-        if (encryptedText == null || encryptedText.isEmpty()) {
-            System.err.println("Encrypted text is empty");
-            return null;
+
+    public byte[] decrypt(byte[] encryptedData, byte[] key) {
+        if (encryptedData == null || encryptedData.length == 0) {
+            System.err.println("Encrypted data is empty");
+            return new byte[0];
         }
 
-        String[] parts = encryptedText.split(IV_DELIMITER, 2);
-        if (parts.length != 2) throw new IllegalArgumentException("Invalid encrypted format");
+        byte[] iv = Arrays.copyOfRange(encryptedData, 0, BLOCK_SIZE);
+        byte[] encrypted = Arrays.copyOfRange(encryptedData, BLOCK_SIZE, encryptedData.length);
 
         FeistelNetwork feistel = new FeistelNetwork(key);
-        byte[] iv = hexToBytes(parts[0]);
-        byte[] encrypted = hexToBytes(parts[1]);
-
         byte[] decrypted = new byte[encrypted.length];
         byte[] prev = iv.clone();
 
@@ -98,13 +99,13 @@ public class Cryptor {
 
         try {
             byte[] unpadded = removePadding(decrypted);
-            return new String(unpadded, StandardCharsets.UTF_8);
+            return unpadded;
         } catch (IllegalArgumentException e) {
-            System.err.println("Padding error! Dump:");
-            System.err.println("Hex: " + bytesToHex(decrypted));
-            return new String(decrypted, StandardCharsets.UTF_8);
+            System.err.println("Padding error! Returning raw decrypted bytes:");
+            return decrypted;
         }
     }
+
 
     public void encryptFile(File inputFile, File outputFile, byte[] key, byte[] salt) throws IOException, IllegalBlockSizeException {
         KeyVerifier keyVerifier = new KeyVerifier();
