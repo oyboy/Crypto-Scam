@@ -1,7 +1,8 @@
 package org.example.commands;
 
 import org.example.Cryptor;
-import org.example.KeyGenerator;
+import org.example.key.KeyGenerator;
+import org.example.MetaCryptor;
 import picocli.CommandLine;
 
 import javax.crypto.IllegalBlockSizeException;
@@ -22,6 +23,7 @@ public class EncryptFileCommand implements Runnable {
     @Override
     public void run() {
         Cryptor cryptor = new Cryptor();
+        MetaCryptor metaCryptor = new MetaCryptor();
         KeyGenerator generator = new KeyGenerator();
         byte[] salt = generator.generateSalt(128/8);
         byte[] key = generator.generateKeyFromPassword(passphrase, salt, 256/8);
@@ -30,6 +32,7 @@ public class EncryptFileCommand implements Runnable {
             File original = new File(filename);
             File encrypted = output_filename == null ? original : new File(output_filename);
             cryptor.encryptFile(original, encrypted, key, salt);
+            metaCryptor.cryptMetadata(original);
         } catch (IllegalBlockSizeException | IOException l) {
             System.err.println("Error: " + l.getMessage());
         }

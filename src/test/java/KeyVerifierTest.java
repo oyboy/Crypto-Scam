@@ -1,4 +1,4 @@
-import org.example.KeyVerifier;
+import org.example.key.KeyVerifier;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;

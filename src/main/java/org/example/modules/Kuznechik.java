@@ -3,7 +3,7 @@ package org.example.modules;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
-import static org.example.DataOperator.xor;
+import static org.example.util.DataOperator.xor;
 
 public class Kuznechik {
     private static final byte[] SBOX = {

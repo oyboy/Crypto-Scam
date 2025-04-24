@@ -1,4 +1,6 @@
-package org.example;
+package org.example.key;
+
+import org.example.util.BBSRandom;
 
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;

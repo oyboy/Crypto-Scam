@@ -1,4 +1,4 @@
-package org.example;
+package org.example.util;
 
 import java.math.BigInteger;
 import java.security.SecureRandom;

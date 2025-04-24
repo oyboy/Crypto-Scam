@@ -1,10 +1,10 @@
-import org.example.DataOperator;
+import org.example.util.DataOperator;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 
-import static org.example.DataOperator.bytesToHex;
-import static org.example.DataOperator.hexToBytes;
+import static org.example.util.DataOperator.bytesToHex;
+import static org.example.util.DataOperator.hexToBytes;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 

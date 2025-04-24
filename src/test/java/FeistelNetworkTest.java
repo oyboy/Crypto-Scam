@@ -1,4 +1,4 @@
-import org.example.FeistelNetwork;
+import org.example.modules.FeistelNetwork;
 import org.example.modules.PBlockTransformer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;

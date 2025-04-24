@@ -1,15 +1,11 @@
-package org.example;
-
-import org.example.modules.Blowfish;
-import org.example.modules.Kuznechik;
-import org.example.modules.PBlockTransformer;
+package org.example.modules;
 
 import javax.crypto.IllegalBlockSizeException;
 import java.security.MessageDigest;
 import java.util.Arrays;
 
-import static org.example.DataOperator.unionArrays;
-import static org.example.DataOperator.xor;
+import static org.example.util.DataOperator.unionArrays;
+import static org.example.util.DataOperator.xor;
 
 public class FeistelNetwork {
     private final byte[] KEY;

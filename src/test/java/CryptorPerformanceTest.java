@@ -1,5 +1,5 @@
 import org.example.Cryptor;
-import org.example.KeyGenerator;
+import org.example.key.KeyGenerator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import java.io.*;

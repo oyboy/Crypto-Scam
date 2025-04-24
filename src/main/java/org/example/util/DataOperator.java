@@ -1,4 +1,4 @@
-package org.example;
+package org.example.util;
 
 public class DataOperator {
     public static byte[] xor(byte[] a, byte[] b) {

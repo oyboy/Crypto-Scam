@@ -1,11 +1,15 @@
 package org.example;
 
+import org.example.key.KeyVerifier;
+import org.example.modules.FeistelNetwork;
+import org.example.util.BBSRandom;
+
 import javax.crypto.IllegalBlockSizeException;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Arrays;
-import static org.example.DataOperator.*;
+import static org.example.util.DataOperator.*;
 
 public class Cryptor {
     private static final int BLOCK_SIZE = 8;

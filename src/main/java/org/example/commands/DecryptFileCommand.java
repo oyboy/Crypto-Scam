@@ -1,7 +1,7 @@
 package org.example.commands;
 
 import org.example.Cryptor;
-import org.example.KeyGenerator;
+import org.example.key.KeyGenerator;
 import picocli.CommandLine;
 
 import javax.crypto.IllegalBlockSizeException;
