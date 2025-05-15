@@ -26,7 +26,8 @@ public class Cryptor {
     }
 
     private byte[] removePadding(byte[] input) {
-        if (input.length == 0) throw new IllegalArgumentException("Unexpected end of block");
+        if (input.length == 0) return new byte[0];
+
         int paddingLength = input[input.length - 1] & 0xFF;
         if (paddingLength <= 0 || paddingLength > BLOCK_SIZE) {
             throw new IllegalArgumentException("Invalid padding");
@@ -98,7 +99,6 @@ public class Cryptor {
             return decrypted;
         }
     }
-
 
     public void encryptFile(File inputFile, File outputFile, byte[] key, byte[] salt) throws IOException, IllegalBlockSizeException {
         KeyVerifier keyVerifier = new KeyVerifier();
@@ -211,5 +211,6 @@ public class Cryptor {
         lastUpdateTime = now;
         int percent = (int) (100 * processed / total);
         System.out.printf("\r[%3d%%] %d/%d bytes", percent, processed, total);
+        System.out.flush();
     }
 }

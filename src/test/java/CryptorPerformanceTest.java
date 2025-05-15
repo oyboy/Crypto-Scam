@@ -8,7 +8,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class CryptorPerformanceTest {
     private static final int MINIMUM_SPEED_KBPS = 250;
     private static final String PATH = "test-files/";
-    private static final String[] TEST_FILES = {"test.txt"};
+    private static final String[] TEST_FILES = {"profile.json", "empty", "test.txt", "image.jpg", "kino.mp3"};
 
     private Cryptor encryptor;
     private byte[] testKey;
