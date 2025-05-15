@@ -6,14 +6,12 @@ import org.example.util.BBSRandom;
 
 import javax.crypto.IllegalBlockSizeException;
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Arrays;
 import static org.example.util.DataOperator.*;
 
 public class Cryptor {
     private static final int BLOCK_SIZE = 8;
-    private static final String IV_DELIMITER = "::";
     private static final int VERIFIER_SIZE = 32;
     private static final int SALT_SIZE = 16;
 
@@ -65,11 +63,7 @@ public class Cryptor {
             }
         }
 
-        byte[] result = new byte[iv.length + encrypted.length];
-        System.arraycopy(iv, 0, result, 0, iv.length);
-        System.arraycopy(encrypted, 0, result, iv.length, encrypted.length);
-
-        return result;
+        return unionArrays(iv, encrypted);
     }
 
     public byte[] decrypt(byte[] encryptedData, byte[] key) {
@@ -98,8 +92,7 @@ public class Cryptor {
         }
 
         try {
-            byte[] unpadded = removePadding(decrypted);
-            return unpadded;
+            return removePadding(decrypted);
         } catch (IllegalArgumentException e) {
             System.err.println("Padding error! Returning raw decrypted bytes:");
             return decrypted;
@@ -113,6 +106,9 @@ public class Cryptor {
         if (verifier == null) throw new IOException("Failed to create key verifier");
 
         byte[] data = Files.readAllBytes(inputFile.toPath());
+        int paddingLength = BLOCK_SIZE - (data.length % BLOCK_SIZE);
+        int totalLength = data.length + paddingLength + verifier.length + salt.length;
+
         try (OutputStream out = new BufferedOutputStream(new FileOutputStream(outputFile))) {
             FeistelNetwork feistel = new FeistelNetwork(key);
             byte[] iv = createInitVector();
@@ -131,11 +127,11 @@ public class Cryptor {
                 out.write(encryptedBlock);
                 prev = encryptedBlock;
 
-                printProgressBar(i + BLOCK_SIZE, data.length + data.length % 8);
+                printProgressBar(i + BLOCK_SIZE, totalLength);
             }
-
             out.write(verifier);
             out.write(salt);
+            printProgressBar(totalLength, totalLength);
             System.out.println("\nEncryption completed!");
         }
     }
@@ -204,8 +200,13 @@ public class Cryptor {
     }
 
     private void printProgressBar(long processed, long total) {
+        if (processed >= total) {
+            System.out.printf("\r[100%%] %d/%d bytes", total, total);
+            return;
+        }
+
         long now = System.nanoTime();
-        long update_interval = 200L;
+        long update_interval = 800L;
         if (now - lastUpdateTime < update_interval * 1_000_000) return;
         lastUpdateTime = now;
         int percent = (int) (100 * processed / total);
