@@ -24,6 +24,10 @@ class CryptorPerformanceTest {
         for (String filename : TEST_FILES) {
             File input = new File(PATH + filename);
             if (!input.exists()) continue;
+            if (input.length() < 1024) {
+                System.out.println(filename + " is too small for speed test, skipping.");
+                continue;
+            }
 
             long sizeKB = input.length() / 1024;
             long start = System.nanoTime();
@@ -42,6 +46,10 @@ class CryptorPerformanceTest {
         for (String filename : TEST_FILES) {
             File original = new File(PATH + filename);
             if (!original.exists()) continue;
+            if (original.length() < 1024) {
+                System.out.println(filename + " is too small for speed test, skipping.");
+                continue;
+            }
 
             File encrypted = new File(PATH + "enc_" + filename);
             encryptor.encryptFile(original, encrypted, testKey, new KeyGenerator().generateSalt(128/8));

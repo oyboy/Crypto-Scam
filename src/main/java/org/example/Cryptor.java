@@ -26,7 +26,7 @@ public class Cryptor {
     }
 
     private byte[] removePadding(byte[] input) {
-        if (input.length == 0) return new byte[0];
+        if (input.length == 0) throw new IllegalArgumentException("Unexpected end of block");
 
         int paddingLength = input[input.length - 1] & 0xFF;
         if (paddingLength <= 0 || paddingLength > BLOCK_SIZE) {
@@ -115,20 +115,18 @@ public class Cryptor {
             out.write(iv);
             byte[] prev = iv.clone();
 
-            System.out.println("Encrypting file...");
-            for (int i = 0; i < data.length; i += BLOCK_SIZE) {
-                int end = Math.min(i + BLOCK_SIZE, data.length);
-                byte[] block = Arrays.copyOfRange(data, i, end);
-
-                if (block.length < BLOCK_SIZE) block = addPadding(block);
-
+            System.out.println("Encrypting: " + inputFile.getName());
+            byte[] padded = addPadding(data);
+            for (int i = 0; i < padded.length; i += BLOCK_SIZE) {
+                byte[] block = Arrays.copyOfRange(padded, i, i + BLOCK_SIZE);
                 byte[] xored = xor(block, prev);
                 byte[] encryptedBlock = feistel.encryptBlock(xored);
                 out.write(encryptedBlock);
                 prev = encryptedBlock;
 
-                printProgressBar(i + BLOCK_SIZE, totalLength);
+                printProgressBar(i + BLOCK_SIZE, padded.length + verifier.length + salt.length);
             }
+
             out.write(verifier);
             out.write(salt);
             printProgressBar(totalLength, totalLength);
