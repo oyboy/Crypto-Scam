@@ -13,17 +13,26 @@ public class KeyGenerator {
     private static final int ITERATIONS = 100_000;
     private static final int BLOCK_SIZE = 64;
 
-    public byte[] generateRandomKey(int keySizeBytes) {
-        BBSRandom secureRandom = new BBSRandom();
-        return secureRandom.nextBytes(keySizeBytes);
+    public byte[] generateKey(String password, byte[] salt, int keySizeBytes) {
+        if (password == null) {
+            BBSRandom sr = new BBSRandom();
+
+            byte[] randomBytes = sr.nextBytes(keySizeBytes);
+            String randomPassword = DataOperator.bytesToHex(randomBytes);
+
+            System.out.println("Generated password: " + randomPassword);
+            return generateKeyFromPassword(randomPassword, salt, keySizeBytes);
+        } else {
+            return generateKeyFromPassword(password, salt, keySizeBytes);
+        }
     }
 
     public byte[] generateSalt(int saltSizeBytes) {
-        BBSRandom secureRandom = new BBSRandom();
-        return secureRandom.nextBytes(saltSizeBytes);
+        BBSRandom sr = new BBSRandom();
+        return sr.nextBytes(saltSizeBytes);
     }
 
-    public byte[] generateKeyFromPassword(String password, byte[] salt, int keySizeBytes) {
+    private byte[] generateKeyFromPassword(String password, byte[] salt, int keySizeBytes) {
         try {
             return pbkdf2HmacSha256(password.getBytes(StandardCharsets.UTF_8), salt, keySizeBytes);
         } catch (Exception e) {

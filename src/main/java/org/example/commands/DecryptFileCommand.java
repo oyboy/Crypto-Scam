@@ -27,7 +27,7 @@ public class DecryptFileCommand implements Runnable {
         File encrypted = output_filename == null ? original : new File(output_filename);
 
         byte[] salt = cryptor.readSalt(original);
-        byte[] key = generator.generateKeyFromPassword(passphrase, salt, 256/8);
+        byte[] key = generator.generateKey(passphrase, salt, 256/8);
 
         try {
             cryptor.decryptFile(original, encrypted, key);

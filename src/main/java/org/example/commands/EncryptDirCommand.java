@@ -1,7 +1,6 @@
 package org.example.commands;
 
 import org.example.Cryptor;
-import org.example.MetaCryptor;
 import org.example.key.KeyGenerator;
 import picocli.CommandLine;
 
@@ -24,7 +23,6 @@ public class EncryptDirCommand implements Runnable {
     public void run() {
         Cryptor cryptor = new Cryptor();
         KeyGenerator generator = new KeyGenerator();
-        MetaCryptor metaCryptor = new MetaCryptor();
 
         try {
             File inputDir = new File(directory);
@@ -38,14 +36,13 @@ public class EncryptDirCommand implements Runnable {
 
             for (File file : files) {
                 byte[] salt = generator.generateSalt(128 / 8);
-                byte[] key = generator.generateKeyFromPassword(passphrase, salt, 256 / 8);
+                byte[] key = generator.generateKey(passphrase, salt, 256 / 8);
 
                 String relativePath = inputDir.toPath().relativize(file.toPath()).toString();
                 File outputFile = new File(outDir, relativePath);
                 outputFile.getParentFile().mkdirs();
 
                 cryptor.encryptFile(file, outputFile, key, salt);
-                // metaCryptor.cryptMetadata(file, key);
             }
             System.out.println("Directory encrypted successfully.");
         } catch (Exception e) {

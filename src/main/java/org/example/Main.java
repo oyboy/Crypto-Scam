@@ -7,7 +7,7 @@ import org.example.commands.EncryptFileCommand;
 import picocli.CommandLine;
 import java.util.Scanner;
 
-@CommandLine.Command(name = "crypto-scum", description = "Crypt files and directories", subcommands = {
+@CommandLine.Command(name = "crypto-scam", description = "Crypt files and directories", subcommands = {
         EncryptFileCommand.class,
         DecryptFileCommand.class,
         EncryptDirCommand.class,

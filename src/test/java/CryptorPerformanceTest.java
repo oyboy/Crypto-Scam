@@ -16,7 +16,7 @@ class CryptorPerformanceTest {
     @BeforeEach
     void setUp() {
         encryptor = new Cryptor();
-        testKey = new KeyGenerator().generateRandomKey(256/8);
+        testKey = new KeyGenerator().generateKey("pass", "salt".getBytes(), 256/8);
     }
 
     @Test

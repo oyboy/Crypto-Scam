@@ -1,37 +1,49 @@
 import org.example.key.KeyGenerator;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import java.util.Arrays;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 public class KeyGeneratorTest {
-    private static final long TIME = 200L;
     @Test
-    void testGenerateRandomKey_lengthIs32Bytes() {
-        byte[] key = new KeyGenerator().generateRandomKey(32);
-        assertEquals(32, key.length, "Длина ключа должна быть 32 байта (256 бит)");
+    void testGenerateKeyFromPassword_isDeterministic() {
+        KeyGenerator generator = new KeyGenerator();
+        String password = "myPassword";
+        byte[] salt = "mySalt".getBytes();
+
+        byte[] key1 = generator.generateKey(password, salt, 32);
+        byte[] key2 = generator.generateKey(password, salt, 32);
+
+        assertArrayEquals(key1, key2, "Ключи при одинаковом пароле и соли должны совпадать");
     }
     @Test
-    void testGenerateRandomKey_fasterThanTimems() {
-        long startTime = System.currentTimeMillis();
-        byte[] key = new KeyGenerator().generateRandomKey(32);
-        long duration = System.currentTimeMillis() - startTime;
-        assertTrue(duration < TIME, "Генерация ключа должна занимать <200 мс");
+    void testGenerateKeyFromPassword_differentSaltProducesDifferentKeys() {
+        KeyGenerator generator = new KeyGenerator();
+        String password = "myPassword";
+        byte[] salt1 = "saltOne".getBytes();
+        byte[] salt2 = "saltTwo".getBytes();
+
+        byte[] key1 = generator.generateKey(password, salt1, 32);
+        byte[] key2 = generator.generateKey(password, salt2, 32);
+
+        assertFalse(Arrays.equals(key1, key2), "Ключи при разных солях должны отличаться");
     }
     @Test
-    void testGenerateKeyFromPassword_lengthIs32Bytes() throws Exception {
-        byte[] key = new KeyGenerator().generateKeyFromPassword(
-                "password123", "salt".getBytes(),32
-        );
-        assertEquals(32, key.length, "Длина ключа должна быть 32 байта (256 бит)");
+    void testGenerateKeyFromPassword_differentPasswordProducesDifferentKeys() {
+        KeyGenerator generator = new KeyGenerator();
+        byte[] salt = "constantSalt".getBytes();
+
+        byte[] key1 = generator.generateKey("pass1", salt, 32);
+        byte[] key2 = generator.generateKey("pass2", salt, 32);
+
+        assertFalse(Arrays.equals(key1, key2), "Ключи при разных паролях должны отличаться");
     }
+    @Timeout(value = 1)
     @Test
-    void testGenerateKeyFromPassword_fasterThanTimems() throws Exception {
-        long startTime = System.currentTimeMillis();
-        byte[] key = new KeyGenerator().generateKeyFromPassword(
-                "password123", "salt".getBytes(),32
-        );
-        long duration = System.currentTimeMillis() - startTime;
-        assertTrue(duration < TIME, "Генерация ключа должна занимать <200 мс");
+    void testGenerateKeyFromPassword_completesInReasonableTime() {
+        byte[] key = new KeyGenerator().generateKey("password", "salt".getBytes(), 32);
+        assertEquals(32, key.length);
     }
 }

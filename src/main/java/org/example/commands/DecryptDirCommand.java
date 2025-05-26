@@ -38,7 +38,7 @@ public class DecryptDirCommand implements Runnable {
 
             for (File file : files) {
                 byte[] salt = cryptor.readSalt(file);
-                byte[] key = generator.generateKeyFromPassword(passphrase, salt, 256 / 8);
+                byte[] key = generator.generateKey(passphrase, salt, 256 / 8);
 
                 String relativePath = inputDir.toPath().relativize(file.toPath()).toString();
                 File outputFile = new File(outDir, relativePath);

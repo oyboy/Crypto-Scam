@@ -21,7 +21,7 @@ public class CryptorHeavyPerfomanceTest {
     @BeforeEach
     void setUp() {
         encryptor = new Cryptor();
-        testKey = new KeyGenerator().generateKeyFromPassword("pass",
+        testKey = new KeyGenerator().generateKey("pass",
                 new KeyGenerator().generateSalt(32), 256/8);
     }
 
