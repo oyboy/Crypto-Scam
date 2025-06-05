@@ -12,14 +12,22 @@ public class Kuznechik {
     };
 
     private static final int[] PBOX = {
-            5, 2, 11, 8, 15, 6, 9, 12, 3, 0, 13, 10, 7, 4, 1, 14
+            5, 2, 11, 8, 15, 6, 9, 12, 3, 0, 13, 10, 7, 4, 1, 14,
+            21, 18, 27, 24, 31, 22, 25, 28, 19, 16, 29, 26, 23, 20, 17, 30,
+            37, 34, 43, 40, 47, 38, 41, 44, 35, 32, 45, 42, 39, 36, 33, 46,
+            53, 50, 59, 56, 63, 54, 57, 60, 51, 48, 61, 58, 55, 52, 49, 62
     };
+    private static final int BLOCK_SIZE = 64;
+    private static final int KEY_SIZE = 8;
 
     public static byte[] encrypt(byte[] data, byte[] key) {
-        if (data.length != 4) throw new IllegalArgumentException("Data must be 4 bytes");
-        if (key.length != 4) throw new IllegalArgumentException("Key must be 4 bytes");
-
-        byte[] xored = xor(data, key);
+        if (data.length != BLOCK_SIZE) throw new IllegalArgumentException("Data must be " + BLOCK_SIZE + " bytes");
+        if (key.length != KEY_SIZE) throw new IllegalArgumentException("Key must be " + KEY_SIZE + " bytes");
+        byte[] expandedKey = new byte[BLOCK_SIZE];
+        for (int i = 0; i < BLOCK_SIZE; i++) {
+            expandedKey[i] = key[i % KEY_SIZE];
+        }
+        byte[] xored = xor(data, expandedKey);
         byte[] sboxed = applySBox(xored);
         return applyLinearTransformation(sboxed);
     }
@@ -35,29 +43,30 @@ public class Kuznechik {
     }
 
     private static byte[] applyLinearTransformation(byte[] data) {
-        byte[] part1 = Arrays.copyOfRange(data, 0, 2);
-        byte[] part2 = Arrays.copyOfRange(data, 2, 4);
-
-        part1 = applyPBox(part1);
-        part2 = applyPBox(part2);
-
-        return ByteBuffer.allocate(4)
-                .put(part1)
-                .put(part2)
-                .array();
+        byte[][] parts = new byte[8][8];
+        for (int i = 0; i < 8; i++) {
+            parts[i] = Arrays.copyOfRange(data, i * 8, (i + 1) * 8);
+        }
+        for (int i = 0; i < 8; i++) {
+            parts[i] = applyPBox(parts[i]);
+        }
+        ByteBuffer buffer = ByteBuffer.allocate(BLOCK_SIZE);
+        for (byte[] part : parts) {
+            buffer.put(part);
+        }
+        return buffer.array();
     }
 
-    private static byte[] applyPBox(byte[] twoBytes) {
-        if (twoBytes.length != 2) throw new IllegalArgumentException("P-box requires 2 bytes");
-        int bits = ((twoBytes[0] & 0xFF) << 8) | (twoBytes[1] & 0xFF);
-        int transformed = 0;
-        for (int i = 0; i < 16; i++) {
-            int bit = (bits >> (15 - PBOX[i])) & 1;
-            transformed |= (bit << (15 - i));
+    private static byte[] applyPBox(byte[] eightBytes) {
+        if (eightBytes.length != 8) throw new IllegalArgumentException("P-box requires 8 bytes");
+        long bits = ByteBuffer.wrap(eightBytes).getLong();
+        long transformed = 0;
+
+        for (int i = 0; i < 64; i++) {
+            int bitPos = 63 - PBOX[i % PBOX.length];
+            long bit = (bits >> bitPos) & 1;
+            transformed |= (bit << (63 - i));
         }
-        return new byte[] {
-                (byte) (transformed >>> 8),
-                (byte) transformed
-        };
+        return ByteBuffer.allocate(8).putLong(transformed).array();
     }
 }

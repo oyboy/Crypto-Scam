@@ -10,7 +10,7 @@ import java.util.Arrays;
 import static org.example.util.DataOperator.*;
 
 public class Cryptor {
-    private static final int BLOCK_SIZE = 8;
+    private static final int BLOCK_SIZE = 128;
     private static final int VERIFIER_SIZE = 32;
     private static final int SALT_SIZE = 16;
 

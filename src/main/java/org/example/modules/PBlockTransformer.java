@@ -9,15 +9,34 @@ public class PBlockTransformer {
     };
 
     public static byte[] apply(byte[] data) {
-        if (data.length != 4) throw new IllegalArgumentException("Input must be 4 bytes");
+        if (data.length % 64 != 0) {
+            throw new IllegalArgumentException("Input must be a multiple of 64 bytes");
+        }
+        byte[] result = new byte[data.length];
+        int numBlocks = data.length / 64;
+        for (int blockIndex = 0; blockIndex < numBlocks; blockIndex++) {
+            byte[] block = new byte[64];
+            System.arraycopy(data, blockIndex * 64, block, 0, 64);
 
-        byte[] result = new byte[4];
+            byte[] transformedBlock = applyBlock(block);
+            System.arraycopy(transformedBlock, 0, result, blockIndex * 64, 64);
+        }
+        return result;
+    }
+
+    private static byte[] applyBlock(byte[] block) {
+        if (block.length != 64) {
+            throw new IllegalArgumentException("Block must be 64 bytes");
+        }
+        byte[] result = new byte[64];
         for (int i = 0; i < 4; i++) {
-            int val = 0;
             for (int j = 0; j < 4; j++) {
-                val ^= galoisMultiply(data[j] & 0xFF, MIX_COLUMNS_MATRIX[i*4 + j]);
+                int val = 0;
+                for (int k = 0; k < 4; k++) {
+                    val ^= galoisMultiply(block[i * 16 + k] & 0xFF, MIX_COLUMNS_MATRIX[j * 4 + k]);
+                }
+                result[i * 16 + j] = (byte) val;
             }
-            result[i] = (byte) val;
         }
         return result;
     }

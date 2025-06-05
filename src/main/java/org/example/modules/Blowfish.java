@@ -184,13 +184,14 @@ public class Blowfish {
                     0xb74e6132, 0xce77e25b, 0x578fdfe3, 0x3ac372e6
             }
     };
+    private static final int BLOCK_SIZE = 64;
     public Blowfish(byte[] key) {
         init(key);
     }
-    private void init(byte[] key) throws IllegalArgumentException{
-        if (key.length < 4) throw new IllegalArgumentException("key must be at least 4 bytes");
+    private void init(byte[] key) throws IllegalArgumentException {
+        if (key.length < 8) throw new IllegalArgumentException("key must be at least 8 bytes");
         int keyPos = 0;
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < S_BOXES.length; i++) {
             for (int j = 0; j < 256; j++) {
                 int keyPart = ((key[keyPos % key.length] & 0xFF) << 24) |
                         ((key[(keyPos + 1) % key.length] & 0xFF) << 16) |
@@ -203,28 +204,57 @@ public class Blowfish {
         }
     }
     public byte[] applyF(byte[] block, byte[] roundKey) {
-        if (block.length != 4) {
-            throw new IllegalArgumentException("Block must be 4 bytes");
+        if (block.length != BLOCK_SIZE) {
+            throw new IllegalArgumentException("Block must be " + BLOCK_SIZE + " bytes");
         }
-        int a = block[0] & 0xFF;
-        int b = block[1] & 0xFF;
-        int c = block[2] & 0xFF;
-        int d = block[3] & 0xFF;
-        int result = (S_BOXES[0][a] + S_BOXES[1][b]) ^ S_BOXES[2][c] + S_BOXES[3][d];
+        byte[] result = new byte[BLOCK_SIZE];
 
-        int keyInt = ((roundKey[0] & 0xFF) << 24) |
-                ((roundKey[1] & 0xFF) << 16) |
-                ((roundKey[2] & 0xFF) << 8) |
-                (roundKey[3] & 0xFF);
+        for (int i = 0; i < BLOCK_SIZE; i += 4) {
+            byte[] word = new byte[]{
+                    block[i], block[i+1], block[i+2], block[i+3]
+            };
+            byte[] currentKey = new byte[]{
+                    roundKey[i % roundKey.length],
+                    roundKey[(i+1) % roundKey.length],
+                    roundKey[(i+2) % roundKey.length],
+                    roundKey[(i+3) % roundKey.length]
+            };
+            byte[] processedWord = processWord(word, currentKey);
+            System.arraycopy(processedWord, 0, result, i, 4);
+        }
+
+        return result;
+    }
+
+    private byte[] processWord(byte[] word, byte[] key) {
+        int a = word[0] & 0xFF;
+        int b = word[1] & 0xFF;
+        int c = word[2] & 0xFF;
+        int d = word[3] & 0xFF;
+
+        int sBoxIndex1 = a % S_BOXES.length;
+        int sBoxIndex2 = b % S_BOXES.length;
+        int sBoxIndex3 = c % S_BOXES.length;
+        int sBoxIndex4 = d % S_BOXES.length;
+
+        int result = (S_BOXES[sBoxIndex1][a] + S_BOXES[sBoxIndex2][b]) ^
+                S_BOXES[sBoxIndex3][c] + S_BOXES[sBoxIndex4][d];
+
+        int keyInt = ((key[0] & 0xFF) << 24) |
+                ((key[1] & 0xFF) << 16) |
+                ((key[2] & 0xFF) << 8) |
+                (key[3] & 0xFF);
+
         result ^= keyInt;
-
         return intToBytes(result);
     }
+
     public byte[] intToBytes(int value) {
         return new byte[]{
                 (byte) (value >>> 24),
                 (byte) (value >>> 16),
                 (byte) (value >>> 8),
-                (byte) value};
+                (byte) value
+        };
     }
 }

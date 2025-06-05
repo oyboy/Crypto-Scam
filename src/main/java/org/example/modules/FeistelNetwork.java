@@ -21,10 +21,10 @@ public class FeistelNetwork {
     }
 
     public byte[] encryptBlock(byte[] block) throws IllegalBlockSizeException {
-        if (block.length != 8) throw new IllegalBlockSizeException("block length must be 8 bytes");
+        if (block.length != 128) throw new IllegalBlockSizeException("block length must be 128 bytes");
 
-        byte[] left = Arrays.copyOfRange(block, 0, 4);
-        byte[] right = Arrays.copyOfRange(block, 4, 8);
+        byte[] left = Arrays.copyOfRange(block, 0, 64);
+        byte[] right = Arrays.copyOfRange(block, 64, 128);
         for (int i = 0; i < ROUNDS; i++) {
             byte[] roundKey = generateRoundKey(i);
             byte[] temp = right;
@@ -35,10 +35,10 @@ public class FeistelNetwork {
     }
 
     public byte[] decryptBlock(byte[] block) throws IllegalBlockSizeException {
-        if (block.length != 8) throw new IllegalBlockSizeException("Block length must be 8 bytes");
+        if (block.length != 128) throw new IllegalBlockSizeException("Block length must be 128 bytes");
 
-        byte[] left = Arrays.copyOfRange(block, 0, 4);
-        byte[] right = Arrays.copyOfRange(block, 4, 8);
+        byte[] left = Arrays.copyOfRange(block, 0, 64);
+        byte[] right = Arrays.copyOfRange(block, 64, 128);
 
         for (int i = ROUNDS-1; i >= 0; i--) {
             byte[] roundKey = generateRoundKey(i);
@@ -50,16 +50,12 @@ public class FeistelNetwork {
         return unionArrays(left, right);
     }
     private byte[] encryptFunction(byte[] subblock, byte[] k){
-        byte[] k1 = Arrays.copyOfRange(k, 0, k.length/2);
-        byte[] k2 = Arrays.copyOfRange(k, k.length/2, k.length);
-
-        byte[] blowfishResult = blowfish.applyF(subblock, k1);
-        byte[] kuznechikResult = Kuznechik.encrypt(subblock, k2);
+        byte[] blowfishResult = blowfish.applyF(subblock, k);
+        byte[] kuznechikResult = Kuznechik.encrypt(subblock, k);
 
         byte[] combined = xor(blowfishResult, kuznechikResult);
         return PBlockTransformer.apply(combined);
     }
-    //returns 8-byte key
     private byte[] generateRoundKey(int round) {
         byte[] salt = {(byte)0x9E, (byte)0x37, (byte)0x79, (byte)0xC1};
         try {
