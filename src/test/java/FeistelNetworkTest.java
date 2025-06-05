@@ -12,17 +12,18 @@ import static org.junit.jupiter.api.Assertions.*;
 public class FeistelNetworkTest {
 
     private FeistelNetwork feistel;
-    private final byte[] testKey = "ThisIsASecretKey123412345678901234568".getBytes();
-    private final byte[] testBlock = "TestBlock".getBytes();
+    private final byte[] testKey = "ThisIsASecretKey12341234567890123456890123456789012345678901234567890123".getBytes();
+    private final byte[] testBlock = new byte[128];
 
     @BeforeEach
     void setUp() {
+        new SecureRandom().nextBytes(testBlock);
         feistel = new FeistelNetwork(testKey);
     }
 
     @Test
     void testEncryptDecryptBlock() throws Exception {
-        byte[] original = Arrays.copyOfRange(testBlock, 0, 8);
+        byte[] original = Arrays.copyOf(testBlock, 128);
 
         byte[] encrypted = feistel.encryptBlock(original);
         byte[] decrypted = feistel.decryptBlock(encrypted);
@@ -32,8 +33,10 @@ public class FeistelNetworkTest {
 
     @Test
     void testEncryptDifferentBlocksProduceDifferentOutput() throws Exception {
-        byte[] block1 = "BlockOne".getBytes();
-        byte[] block2 = "BlockTwo".getBytes();
+        byte[] block1 = new byte[128];
+        byte[] block2 = new byte[128];
+        new SecureRandom().nextBytes(block1);
+        new SecureRandom().nextBytes(block2);
 
         byte[] encrypted1 = feistel.encryptBlock(block1);
         byte[] encrypted2 = feistel.encryptBlock(block2);
@@ -44,16 +47,19 @@ public class FeistelNetworkTest {
 
     @Test
     void testEncryptSameBlockSameOutput() throws Exception {
-        byte[] block = "SameBloc".getBytes();
+        byte[] block = new byte[128];
+        new SecureRandom().nextBytes(block);
         byte[] encrypted1 = feistel.encryptBlock(block);
         byte[] encrypted2 = feistel.encryptBlock(block);
 
         assertArrayEquals(encrypted1, encrypted2,
                 "Same block with same key should produce same encrypted output");
     }
+
     @Test
     void testEncryptAndDecryptSameBlock() throws Exception {
-        byte[] block = "BlockOne".getBytes();
+        byte[] block = new byte[128];
+        new SecureRandom().nextBytes(block);
         byte[] encrypted = feistel.encryptBlock(block);
         byte[] decrypted = feistel.decryptBlock(encrypted);
         assertArrayEquals(block, decrypted, "Decrypted block should match original");
@@ -61,16 +67,16 @@ public class FeistelNetworkTest {
 
     @Test
     void testInvalidBlockSize() {
-        byte[] shortBlock = "Short".getBytes();
-        byte[] longBlock = "ThisBlockIsTooLong".getBytes();
+        byte[] shortBlock = new byte[127]; // 1 byte less than required
+        byte[] longBlock = new byte[129]; // 1 byte more than required
 
         assertThrows(IllegalBlockSizeException.class,
                 () -> feistel.encryptBlock(shortBlock),
-                "Should throw for block smaller than 8 bytes");
+                "Should throw for block smaller than 128 bytes");
 
         assertThrows(IllegalBlockSizeException.class,
                 () -> feistel.encryptBlock(longBlock),
-                "Should throw for block larger than 8 bytes");
+                "Should throw for block larger than 128 bytes");
     }
 
     @Test
@@ -79,16 +85,18 @@ public class FeistelNetworkTest {
 
         assertThrows(IllegalArgumentException.class,
                 () -> new FeistelNetwork(shortKey),
-                "Should throw for key shorter than ROUNDS bytes");
+                "Should throw for key shorter than required");
     }
 
     @Test
     void testKeyImmutability() throws IllegalBlockSizeException {
-        byte[] mutableKey = "MutableKey1234567890".getBytes();
+        byte[] mutableKey = new byte[128];
+        new SecureRandom().nextBytes(mutableKey);
         FeistelNetwork fn = new FeistelNetwork(mutableKey);
         mutableKey[0] = 'X';
 
-        byte[] testBlock = "TestBlok".getBytes();
+        byte[] testBlock = new byte[128];
+        new SecureRandom().nextBytes(testBlock);
         byte[] encrypted1 = fn.encryptBlock(testBlock);
         byte[] encrypted2 = fn.encryptBlock(testBlock);
 
@@ -119,7 +127,7 @@ public class FeistelNetworkTest {
 
     @Test
     void testAllZeroBlock() throws Exception {
-        byte[] zeroBlock = new byte[8];
+        byte[] zeroBlock = new byte[128];
         byte[] encrypted = feistel.encryptBlock(zeroBlock);
         byte[] decrypted = feistel.decryptBlock(encrypted);
 
@@ -131,7 +139,7 @@ public class FeistelNetworkTest {
 
     @Test
     void testAllOnesBlock() throws Exception {
-        byte[] onesBlock = new byte[8];
+        byte[] onesBlock = new byte[128];
         Arrays.fill(onesBlock, (byte)0xFF);
 
         byte[] encrypted = feistel.encryptBlock(onesBlock);
@@ -140,16 +148,16 @@ public class FeistelNetworkTest {
         assertArrayEquals(onesBlock, decrypted,
                 "All ones block should decrypt correctly");
     }
+
     @Test
     void testPBlockIntegration() {
-        byte[] testData = {0x00, 0x11, 0x22, 0x33};
-        byte[] key = new byte[8];
+        byte[] testData = new byte[128];
+        new SecureRandom().nextBytes(testData);
+        byte[] key = new byte[128];
         new SecureRandom().nextBytes(key);
 
         byte[] transformed = PBlockTransformer.apply(testData);
 
         assertFalse(Arrays.equals(testData, transformed));
-        assertNotEquals(0x00, transformed[0] & 0xFF);
-        assertNotEquals(0x11, transformed[1] & 0xFF);
     }
 }

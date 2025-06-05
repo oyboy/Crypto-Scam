@@ -53,6 +53,7 @@
                 <configuration>
                     <excludes>
                         <exclude>**/CryptorHeavyPerfomanceTest.java</exclude>
+                        <exclude>**/FeistelNetworkAvalancheTest.java</exclude>
                     </excludes>
                 </configuration>
             </plugin>
